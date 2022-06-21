@@ -1,13 +1,13 @@
-#define BLYNK_TEMPLATE_ID "TMPLgihD0BWQ"
-#define BLYNK_DEVICE_NAME "TEST ULTRASONIC"
-#define BLYNK_AUTH_TOKEN "qDgRws8jt0MGBRkSBWNJunAaje6kcyQq"
+#define BLYNK_TEMPLATE_ID "TMPLDY-z2stz"
+#define BLYNK_DEVICE_NAME "almari pengering"
+#define BLYNK_AUTH_TOKEN "08ZiUw9yK5JrdduemTGICdRg3DTTHV9g"
 
 #include <Wire.h>
 #include <TimeLib.h>
 #include <DS1307RTC.h>
 
 #include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 #include "DHT.h"
 
@@ -24,8 +24,8 @@ char auth[] = BLYNK_AUTH_TOKEN;
 
 // Your WiFi credentials.
 // Set password to "" for open networks.
-char ssid[] = "YourNetworkName";
-char pass[] = "YourPassword";
+char ssid[] = "HP";
+char pass[] = "nafza9494";
 
 // Hardware Serial on Mega, Leonardo, Micro...
 #define EspSerial Serial1
@@ -35,7 +35,7 @@ char pass[] = "YourPassword";
 // SoftwareSerial EspSerial(2, 3); // RX, TX
 
 // Your ESP8266 baud rate:
-#define ESP8266_BAUD 9600
+#define ESP8266_BAUD 38400
 
 ESP8266 wifi(&EspSerial);
 
@@ -52,15 +52,16 @@ int relay1 = 2; // utk ptc heater
 int relay2 = 3; // kipas 
 int relay3 = 4; // led pilot red
 int relay4 = 5; // led pilot green
+
 int relay5 = 6; // power on off
-int relay6 = 7;
+int relay6 = 7; // power on off
 
 String Status;
 
 int hours = 0;
 int mins = 0;
 
-int setmin = 45; 
+int setmin = 5; 
 
 int hoursetclose = 0;
 int minsetclose = 0;
@@ -77,18 +78,23 @@ BLYNK_WRITE(V2)
 {
   poweronoff = param.asInt();
 
-  if (poweronoff = 1){
+  Serial.println(poweronoff);
+
+  if (poweronoff == 1){
     digitalWrite(relay5, LOW);
     digitalWrite(relay6, LOW);
-    digitalWrite(relay3, LOW); // lampu merah hidup
-    digitalWrite(relay4, HIGH);
+    digitalWrite(relay3, HIGH); // lampu merah hidup
+    digitalWrite(relay4, LOW);
     }
 
   else {
     digitalWrite(relay5, HIGH);
     digitalWrite(relay6, HIGH);
-    digitalWrite(relay3, HIGH);
-    digitalWrite(relay4, HIGH);
+    digitalWrite(relay3, LOW);
+    digitalWrite(relay4, LOW);
+    digitalWrite(relay1, HIGH);
+    digitalWrite(relay2, HIGH);
+    Blynk.virtualWrite(V3, 0);
   }
   
 }
@@ -125,29 +131,31 @@ void myTimerEvent()
   if (poweronoff == 1){
     switch (startsystem) {
       case 0:
+        statelcd = 0;
         digitalWrite(relay1, HIGH);
         digitalWrite(relay2, HIGH);
-        digitalWrite(relay3, HIGH); 
-        digitalWrite(relay4, LOW); // lampu hijau hidup
+        digitalWrite(relay3, LOW); 
+        digitalWrite(relay4, HIGH); // lampu hijau hidup
         if (statelcd == 0){
-          lcd.setCursor(9, 0);
+          lcd.setCursor(13, 0);
           lcd.print("       ");
-          lcd.setCursor(9, 0);
+          lcd.setCursor(13, 0);
           lcd.print("Not Run");
           statelcd = 1;
         }
         break;
       case 1:
+        statelcd = 0;
         digitalWrite(relay1, LOW);
         digitalWrite(relay2, LOW);
-        digitalWrite(relay3, LOW); // lampu merah hidup
-        digitalWrite(relay4, HIGH);
+        digitalWrite(relay3, HIGH); // lampu merah hidup
+        digitalWrite(relay4, LOW);
         startsystem  = 2;
         Status = "Running";
         if (statelcd == 0){
-          lcd.setCursor(9, 0);
+          lcd.setCursor(13, 0);
           lcd.print("       ");
-          lcd.setCursor(9, 0);
+          lcd.setCursor(13, 0);
           lcd.print("Running");
           statelcd = 1;
         }
@@ -170,21 +178,23 @@ void myTimerEvent()
           state = 1;
           }
 
-        timerdisplay = ((hours * 60)+ mins) - ((hoursetclose * 60) + minsetclose);
+        timerdisplay = ((hoursetclose * 60) + minsetclose) - ((hours * 60)+ mins);
 
-        lcd.setCursor(8, 1);
+        lcd.setCursor(13, 1);
         lcd.print("  ");
-        lcd.setCursor(8, 1);
+        lcd.setCursor(13, 1);
         lcd.print(timerdisplay);
-        lcd.setCursor(11, 1);
+        lcd.setCursor(16, 1);
         lcd.print("Min");
 
         if (timerdisplay < 10){
-          lcd.setCursor(8, 1);
+          lcd.setCursor(13, 1);
           lcd.print(" ");
-          lcd.setCursor(8, 1);
+          lcd.setCursor(13, 1);
           lcd.print(timerdisplay);
-          lcd.setCursor(10, 1);
+          lcd.setCursor(15, 1);
+          lcd.print("    ");
+          lcd.setCursor(15, 1);
           lcd.print("Min");
           }
       
@@ -192,16 +202,18 @@ void myTimerEvent()
         if (hours == hoursetclose && mins == minsetclose){
           digitalWrite(relay1, HIGH);
           digitalWrite(relay2, HIGH);
-          digitalWrite(relay3, HIGH);
-          digitalWrite(relay4, LOW); // lampu hijau hidup
+          digitalWrite(relay3, LOW);
+          digitalWrite(relay4, HIGH); // lampu hijau hidup
           startsystem = 0;
           statemanual = 0;
           state = 0;
           Status = "done";
-          lcd.setCursor(9, 0);
+          Blynk.virtualWrite(V3, 0);
+          lcd.setCursor(13, 0);
           lcd.print("       ");
-          lcd.setCursor(9, 0);
+          lcd.setCursor(13, 0);
           lcd.print("Done");
+          delay (2000);
           }
         break;
       
@@ -234,21 +246,25 @@ void setup()
 
   digitalWrite(relay1, HIGH);
   digitalWrite(relay2, HIGH);
-  digitalWrite(relay3, HIGH);
-  digitalWrite(relay4, HIGH);
+  digitalWrite(relay3, LOW);
+  digitalWrite(relay4, LOW);
   digitalWrite(relay5, HIGH);
   digitalWrite(relay6, HIGH);
 
   lcd.setCursor(0, 0);
-  lcd.print("Status = ");
+  lcd.print("Status     = ");
   lcd.setCursor(0, 1);
-  lcd.print("Timer = ");
+  lcd.print("Timer      = ");
+  lcd.setCursor(0, 2);
+  lcd.print("Temperature= ");
+  lcd.setCursor(0, 3);
+  lcd.print("Humidity   = ");
   
   // Set ESP8266 baud rate
   EspSerial.begin(ESP8266_BAUD);
   delay(10);
 
-  Blynk.begin(auth, wifi, ssid, pass);
+  Blynk.begin(auth, wifi, ssid, pass, "blynk.cloud", 80);
 
   timer.setInterval(1000L, myTimerEvent);
 }
